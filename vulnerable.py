@@ -23,7 +23,7 @@ def init_db():
                 password TEXT NOT NULL
             )
         ''')
-        # fake users info 
+        # fake users info
         cursor.execute("INSERT OR IGNORE INTO users (username, password) VALUES ('admin', 'admin123')")
         cursor.execute("INSERT OR IGNORE INTO users (username, password) VALUES ('user1', 'password123')")
         cursor.execute("INSERT OR IGNORE INTO users (username, password) VALUES ('guest', 'guestpass')")
@@ -33,9 +33,9 @@ def init_db():
 def get_tasks(search):
     with sqlite3.connect(db) as conn:
         cursor = conn.cursor()
-        # directly injecting user input into the query (very bad)
-        query = f"SELECT content FROM tasks WHERE content LIKE '%{search}%'"
-        cursor.execute(query)  
+        # now using paramaterized queries... very very nice. and secure.
+        query = f"SELECT content FROM tasks WHERE content LIKE ?"
+        cursor.execute(query, ('%' + search + '%',))
         return [row[0] for row in cursor.fetchall()]
 
 def add_task_db(task):
@@ -46,7 +46,7 @@ def add_task_db(task):
 
 @app.route('/')
 def index():
-    search = request.args.get('search', '') 
+    search = request.args.get('search', '')
 
     tasks = get_tasks(search=search)
 
@@ -61,13 +61,13 @@ def index():
             New Task: <input type="text" name="todo" required><br>
             <input type="submit" value="Add Task">
         </form>
-        
+
         <h2>Search Tasks</h2>
         <form method="GET" action="/">
             Search: <input type="text" name="search" value="{{ search_query }}">
             <input type="submit" value="Search">
         </form>
-        
+
         {% if search_query %}
             <h3>Search Results for: {{ search_query|safe }}</h3>
             <ul>
@@ -83,8 +83,7 @@ def add_task():
     task = request.form.get('todo')
     add_task_db(task)
     return index()
-     
+
 if __name__ == '__main__':
     init_db()
     app.run(host='0.0.0.0', port=80, debug=True, threaded=True)
-
